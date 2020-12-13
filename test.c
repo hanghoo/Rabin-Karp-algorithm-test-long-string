@@ -1,3 +1,5 @@
+/* compiles with command line  g++ test.c */
+/* run with command line  ./a.out sample.txt forbidden.txt */
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
