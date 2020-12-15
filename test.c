@@ -10,10 +10,8 @@
 
 using namespace std;
 
-struct Forbidden_str
-{
-	char c0, c1, c2, c3, c4, c5, c6;
-};
+int LENGTH, NUMBER;
+
 
 int is_prime(int a){
 	int a_sqrt, i;
@@ -34,6 +32,199 @@ int is_prime(int a){
 	}
 }
 
+int customize_pow(int a, int b, int prime){
+	int value = 1;
+	for(int i=0; i<b; i++){
+		value = value * a % prime;
+	}
+	return value;
+}
+
+
+void creat_hash(FILE *forbidden, int prime, int *hash_table, string *forbidden_str){
+	char ch[LENGTH];
+   	string tmp;   	
+   	int count=0;
+   	int length, number;
+   	fscanf(forbidden, "%d %d\n", &length, &number);
+   	while(!feof(forbidden)){
+   		fscanf(forbidden, "%s\n", ch);
+   		tmp = ch;
+   		//printf("%s\n", tmp.c_str()); 
+   		int hash_val=0;  		
+   		count++;
+   		for(int i=0; i<LENGTH; i++){
+   			hash_val = hash_val + int( tmp[i] * customize_pow(256, (LENGTH-1-i), prime) );	
+   		}
+   		hash_val = hash_val % prime;
+   		//printf("hash_val %d\n", hash_val);
+   			   	
+   		// need to consider collision
+   		while(hash_table[hash_val] != 0){
+   			hash_val += 1;
+   			hash_val = hash_val % prime;
+   		}
+   		hash_table[hash_val] = hash_val;
+   		forbidden_str[hash_val] = tmp;  
+   		//printf(" hash table value is %d forbidden string is %s\n", hash_table[hash_val], forbidden_str[hash_val].c_str());
+ 		//break;
+ 	}
+
+   	printf("count is %d\n", count);
+}
+
+
+void search_forbidden(FILE *sample, int prime, int *hash_table, string *forbidden_str){
+	char c;
+	char ch[LENGTH];
+	int hash_est=0; 
+	int hash_next=0;
+	int str_count=0;
+	int index=0;
+
+	/* initialization */
+	for(int i=0; i<LENGTH; i++){
+		c = fgetc(sample);
+		ch[i] = c;
+		hash_est = hash_est + int( c * customize_pow(256, (LENGTH-1-i), prime) );
+   	}
+   	hash_est = hash_est % prime;
+   	hash_next = hash_est;
+	//printf("ch[] is %s\n", ch);
+   	//printf("hash_est1 is %d\n", hash_est);
+
+   	// compare procedure
+   	if(hash_table[hash_est] == 0){ // value not exist
+   	}
+   	else if(hash_table[hash_est] == hash_est){ // value equal
+   		int idx=0;
+   		for(int i=0; i<LENGTH; i++){
+   			if(forbidden_str[hash_est][i] != ch[i]){
+   				break;
+   			}
+   			idx++;
+   		}
+   		if(idx == LENGTH && forbidden_str[hash_est][LENGTH-1] == ch[LENGTH-1]){
+   			//printf("I come here\n");
+   			printf("forbidden substring: %s, start position: %d\n", ch, index);
+   			str_count++;
+   		}
+   		else{ // need to check next(collision)
+   			printf("I come here else\n");
+   			while(hash_table[hash_est] != 0){
+   			hash_est = (hash_est + 1) % prime;
+   			int idx=0;
+	   		for(int i=0; i<LENGTH; i++){
+	   			if(forbidden_str[hash_est][i] != ch[i]){
+	   				break;
+	   			}
+	   			idx++;
+	   		}
+	   		if(idx == LENGTH && forbidden_str[hash_est][LENGTH-1] == ch[LENGTH-1]){
+	   			printf("forbidden substring: %s, start position: %d\n", ch, index);
+	   			str_count++;
+	   			}
+   			}
+   		} 
+
+   	}
+   	else{ // value not equal, check next(collision)
+   		while(hash_table[hash_est] != 0){
+   			hash_est = (hash_est + 1) % prime;
+   			int idx=0;
+	   		for(int i=0; i<LENGTH; i++){
+	   			if(forbidden_str[hash_est][i] != ch[i]){
+	   				break;
+	   			}
+	   			idx++;
+	   		}
+	   		if(idx == LENGTH && forbidden_str[hash_est][LENGTH-1] == ch[LENGTH-1]){
+	   			printf("forbidden substring: %s, start position: %d\n", ch, index);
+	   			str_count++;
+	   		}
+   		}
+   	}
+
+   	/* enrolling hash function */
+	while(!feof(sample)){
+		hash_est = hash_next;
+		//printf("hash_est2 is %d\n", hash_est);
+		c = fgetc(sample);
+		//printf("%c", c);
+		index++;
+		hash_est = ( (hash_est + prime - int(ch[0] * customize_pow(256, (LENGTH-1), prime) ) % prime ) * 256 + int(c) ) % prime;
+		hash_next = hash_est;
+		//printf("hash_est3 is %d\n", hash_est);
+		
+		/* update ch[LENGTH] */
+		ch[0] = ch[1];
+		ch[1] = ch[2];
+		ch[2] = ch[3];
+		ch[3] = ch[4];
+		ch[4] = ch[5];
+		ch[5] = ch[6];
+		ch[6] = c;
+		// break;
+
+		// compare procedure
+	   	if(hash_table[hash_est] == 0){ // value not exist
+	   		//printf("None\n");
+	   	}
+	   	else if(hash_table[hash_est] == hash_est){ // value equal
+	   		int idx=0;
+	   		for(int i=0; i<LENGTH; i++){
+	   			if(forbidden_str[hash_est][i] != ch[i]){
+	   				break;
+	   			}
+	   			idx++;
+	   		}
+	   		if(idx == LENGTH && forbidden_str[hash_est][LENGTH-1] == ch[LENGTH-1]){
+	   			printf("forbidden substring: %s, start position: %d\n", ch, index);
+	   			str_count++;
+	   		}
+	   		else{ // need to check next(collision)
+	   			while(hash_table[hash_est] != 0){
+	   			hash_est = (hash_est + 1) % prime;
+	   			int idx=0;
+		   		for(int i=0; i<LENGTH; i++){
+		   			if(forbidden_str[hash_est][i] != ch[i]){
+		   				break;
+		   			}
+		   			idx++;
+		   		}
+		   		if(idx == LENGTH && forbidden_str[hash_est][LENGTH-1] == ch[LENGTH-1]){
+		   			printf("forbidden substring: %s, start position: %d\n", ch, index);
+		   			str_count++;
+		   			}
+	   			}
+	   			//printf("None\n");
+	   		} 
+
+	   	}
+	   	else{ // value not equal, check next(collision)
+	   		while(hash_table[hash_est] != 0){
+	   			hash_est = (hash_est + 1) % prime;
+	   			int idx=0;
+		   		for(int i=0; i<LENGTH; i++){
+		   			if(forbidden_str[hash_est][i] != ch[i]){
+		   				break;
+		   			}
+		   			idx++;
+		   		}
+		   		if(idx == LENGTH && forbidden_str[hash_est][LENGTH-1] == ch[LENGTH-1]){
+		   			printf("forbidden substring: %s, start position: %d\n", ch, index);
+		   			str_count++;
+		   		}
+		   		//printf("None\n");
+	   		}
+	   	}
+
+	}
+	printf("Total number of forbidden substring is: %d\n", str_count);
+}
+
+
+
 int main(int argc, char **argv){
 	/* check the argv */
 	FILE *sample;
@@ -50,22 +241,21 @@ int main(int argc, char **argv){
 
 	   	forbidden = fopen(argv[2], "r");
 	   	if( forbidden != NULL )
-	   		printf("opened forbidden file %s\n", argv[1] );
+	   		printf("opened forbidden file %s\n", argv[2] );
 	 	else
-	   	{  	printf("cannot open forbidden file %s\n", argv[1] );
+	   	{  	printf("cannot open forbidden file %s\n", argv[2] );
 	  		exit( 0 );
 	   	}
 	}
 
-   	/* read the number of 1st line */
-   	int LENGTH, NUMBER;
+   	/* read the number of 1st line */   	
    	fscanf(forbidden, "%d %d\n", &LENGTH, &NUMBER);
    	printf("LENGTH: %d, NUMBER: %d\n", LENGTH, NUMBER);
 
 
 	/* forbidden string */
 	/* find the minimum prime number */
-	unsigned int prime = LENGTH*NUMBER; // could replace by 400000 * 7
+	unsigned int prime = LENGTH*NUMBER; // replace by 400000 * 7
 	int is_loop = 0;
 	while(1){
 		is_loop = is_prime(prime);
@@ -79,181 +269,19 @@ int main(int argc, char **argv){
 	printf("Minimum prime number is: %d\n", prime);
 
 	/* creat harsh table */   	
-   	vector<int> hash_table;
-   	hash_table.resize(prime);
-   	vector<string> forbidden_str;
-   	forbidden_str.resize(prime);
-   	printf("hash size is: %ld\n", hash_table.size());
-   	printf("forbidden size is: %ld\n", forbidden_str.size());
+   	int* hash_table;
+   	string* forbidden_str;
+   	hash_table = (int *)malloc(prime * sizeof(int));
+   	forbidden_str = new string[prime];
 
-   	char ch[LENGTH];
-   	string tmp;
-   	int hash_val=0;
-   	int count=0;
-   	while(!feof(forbidden)){
-   		fscanf(forbidden, "%c%c%c%c%c%c%c\n", &ch[0],&ch[1],&ch[2],&ch[3],&ch[4],&ch[5],&ch[6]);
-   		for(int i=0; i<LENGTH; i++){
-   			tmp[i] = ch[i];
-   		}
-   		//printf("%s\n", tmp.c_str());
-   		count++;
-
-   		for(int i=0; i<LENGTH; i++){
-   			hash_val = ( hash_val + int(tmp[i] * pow(89, (LENGTH-1-i)) ) ) % prime;
-   		}
-   		//printf("%d\n", hash_val);
-
-   		// need to consider collision
-   		while(hash_table[hash_val] != 0){
-   			hash_val += 1;
-   			hash_val = hash_val % prime;
-   		}
-   		// hash_table[tmp_val] == 0
-   		hash_table[hash_val] = hash_val;
-   		forbidden_str[hash_val] = tmp;   		
- 	}
-	printf("count is %d\n", count);
-	fclose(forbidden);
+   	/* creat hash table */
+   	creat_hash(forbidden, prime, hash_table, forbidden_str);
+   	fclose(forbidden);  
 
 	/* compare sample txt */
-	char c;
-	int hash_est, hash_next;
-	int str_count=0;
-	int index=0;
-	/* initialization */
-	for(int i=0; i<LENGTH; i++){
-		c = fgetc(sample);
-		ch[i] = c;
-		hash_est = ( hash_est + int(c * pow(89, (LENGTH-1-i)) ) ) % prime;
-   	}
-   	hash_next = hash_est;
+	search_forbidden(sample, prime, hash_table, forbidden_str);
+	fclose(sample);
 
-   	printf("hash_est is %d\n", hash_est);
-   	// compare procedure
-   	if(hash_table[hash_est] == 0){ // value not exist
-   		printf("None\n");
-   	}
-   	else if(hash_table[hash_est] == hash_est){ // value equal
-   		int i=0;
-   		for(i=0; i<LENGTH; i++){
-   			if(forbidden_str[hash_est][i] != ch[i]){
-   				break;
-   			}
-   		}
-   		if(i == LENGTH-1){
-   			printf("forbidden substring: %s\n", ch);
-   			str_count++;
-   		}
-   		else{ // need to check next(collision)
-   			while(hash_table[hash_est] != 0){
-   			hash_est = (hash_est + 1) % prime;
-   			int i=0;
-	   		for(i=0; i<LENGTH; i++){
-	   			if(forbidden_str[hash_est][i] != ch[i]){
-	   				break;
-	   			}
-	   		}
-	   		if(i == LENGTH-1){
-	   			printf("forbidden substring: %s, start position: %d\n", ch, index);
-	   			str_count++;
-	   			}
-   			}
-   			printf("None\n");
-   		} 
-
-   	}
-   	else{ // value not equal, check next(collision)
-   		while(hash_table[hash_est] != 0){
-   			hash_est = (hash_est + 1) % prime;
-   			int i=0;
-	   		for(i=0; i<LENGTH; i++){
-	   			if(forbidden_str[hash_est][i] != ch[i]){
-	   				break;
-	   			}
-	   		}
-	   		if(i == LENGTH-1){
-	   			printf("forbidden substring: %s, start position: %d\n", ch, index);
-	   			str_count++;
-	   		}
-	   		printf("None\n");
-   		}
-   	}
-
-	while(!feof(sample)){
-		//printf("%c", c);
-		hash_est = hash_next;
-		int diff = ch[0];
-		for(int j=0; j<LENGTH; j++){
-			diff = diff * 89 % prime;
-		}
-		//printf("diff is %d\n", diff);
-		c = fgetc(sample);
-		index++;
-		hash_est = ((hash_est + prime + int(c)) % prime + diff ) % prime;
-		hash_next = hash_est;
-		//printf("%d\n", hash_est);
-		
-		/* update ch[LENGTH] */
-		for(int j=0; j<LENGTH; j++){
-			ch[0] = ch[1];
-			ch[1] = ch[2];
-			ch[2] = ch[3];
-			ch[3] = ch[4];
-			ch[4] = ch[5];
-			ch[5] = ch[6];
-			ch[6] = c;
-		}
-
-		// compare procedure
-	   	if(hash_table[hash_est] == 0){ // value not exist
-	   		printf("None\n");
-	   	}
-	   	else if(hash_table[hash_est] == hash_est){ // value equal
-	   		int i=0;
-	   		for(i=0; i<LENGTH; i++){
-	   			if(forbidden_str[hash_est][i] != ch[i]){
-	   				break;
-	   			}
-	   		}
-	   		if(i == LENGTH-1){
-	   			printf("forbidden substring: %s\n", ch);
-	   			str_count++;
-	   		}
-	   		else{ // need to check next(collision)
-	   			while(hash_table[hash_est] != 0){
-	   			hash_est = (hash_est + 1) % prime;
-	   			int i=0;
-		   		for(i=0; i<LENGTH; i++){
-		   			if(forbidden_str[hash_est][i] != ch[i]){
-		   				break;
-		   			}
-		   		}
-		   		if(i == LENGTH-1){
-		   			printf("forbidden substring: %s, start position: %d\n", ch, index);
-		   			str_count++;
-		   			}
-	   			}
-	   			printf("None\n");
-	   		} 
-
-	   	}
-	   	else{ // value not equal, check next(collision)
-	   		while(hash_table[hash_est] != 0){
-	   			hash_est = (hash_est + 1) % prime;
-	   			int i=0;
-		   		for(i=0; i<LENGTH; i++){
-		   			if(forbidden_str[hash_est][i] != ch[i]){
-		   				break;
-		   			}
-		   		}
-		   		if(i == LENGTH-1){
-		   			printf("forbidden substring: %s, start position: %d\n", ch, index);
-		   			str_count++;
-		   		}
-		   		printf("None\n");
-	   		}
-	   	}
-
-	}
-	printf("Total number of forbidden substring is: %d\n", str_count);
+	free(hash_table);
+	delete [] forbidden_str;	
 }
